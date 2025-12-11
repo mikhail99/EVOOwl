@@ -1,0 +1,108 @@
+{
+  "name": "EvolutionSnapshot",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "User-friendly name for this snapshot"
+    },
+    "snapshot_type": {
+      "type": "string",
+      "enum": [
+        "generation_complete",
+        "new_champion",
+        "manual",
+        "evolution_complete"
+      ],
+      "description": "Type of snapshot trigger"
+    },
+    "generation": {
+      "type": "number",
+      "description": "Generation number when snapshot was taken"
+    },
+    "problem": {
+      "type": "string",
+      "description": "Problem statement"
+    },
+    "criteria": {
+      "type": "array",
+      "description": "Evaluation criteria",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Evolution configuration",
+      "properties": {
+        "populationSize": {
+          "type": "number"
+        },
+        "generations": {
+          "type": "number"
+        },
+        "mutationRate": {
+          "type": "number"
+        },
+        "crossoverRate": {
+          "type": "number"
+        }
+      }
+    },
+    "population": {
+      "type": "array",
+      "description": "Current population at snapshot time",
+      "items": {
+        "type": "object"
+      }
+    },
+    "generations_data": {
+      "type": "array",
+      "description": "Fitness data for all generations",
+      "items": {
+        "type": "object",
+        "properties": {
+          "generation": {
+            "type": "number"
+          },
+          "bestFitness": {
+            "type": "number"
+          },
+          "avgFitness": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "champion": {
+      "type": "object",
+      "description": "Best solution at snapshot time"
+    },
+    "champion_generation": {
+      "type": "number",
+      "description": "Generation when champion was found"
+    },
+    "best_fitness": {
+      "type": "number",
+      "description": "Best fitness score at this point"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Unique ID for this evolution session"
+    }
+  },
+  "required": [
+    "snapshot_type",
+    "generation",
+    "problem",
+    "session_id"
+  ]
+}
