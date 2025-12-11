@@ -1,6 +1,12 @@
-import { Criterion, Solution, Snapshot } from '@/api/types'
+import {
+  Criterion,
+  Solution,
+  Snapshot,
+  EvolutionRunStartResponse,
+  EvolutionRunStatusResponse
+} from '@/api/types'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '')
+const API_BASE_URL = (((import.meta as any).env?.VITE_API_BASE_URL) || 'http://localhost:8000/api').replace(/\/$/, '')
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const resp = await fetch(`${API_BASE_URL}${path}`, {
@@ -59,6 +65,26 @@ export const backendApi = {
         method: 'POST',
         body: JSON.stringify(params)
       })
+    },
+    startEvolutionRun: async (params: {
+      problem: string
+      criteria: Criterion[]
+      config?: {
+        numGenerations?: number
+        maxParallelJobs?: number
+        patchTypes?: string[]
+        patchTypeProbs?: number[]
+        condaEnv?: string | null
+        resultsDir?: string | null
+      }
+    }): Promise<EvolutionRunStartResponse> => {
+      return request<EvolutionRunStartResponse>('/evolution/run/start', {
+        method: 'POST',
+        body: JSON.stringify(params)
+      })
+    },
+    getEvolutionRunStatus: async (runId: string): Promise<EvolutionRunStatusResponse> => {
+      return request<EvolutionRunStatusResponse>(`/evolution/run/${runId}/status`)
     }
   },
   snapshots: {

@@ -22,6 +22,35 @@ export interface Solution {
   reasoning?: string
 }
 
+export interface EvolutionRunStartResponse {
+  runId: string
+  resultsDir: string
+}
+
+export interface EvolutionRunStatusResponse {
+  runId: string
+  status: 'running' | 'completed' | 'failed' | 'unknown'
+  resultsDir: string
+  lastGeneration: number | null
+  bestProgram?: {
+    id?: string
+    code: string
+    combined_score?: number
+    public_metrics?: Record<string, any>
+    text_feedback?: string
+    generation?: number
+    markdown?: string
+  }
+  topPrograms?: Array<{
+    id?: string
+    code: string
+    markdown?: string
+    fitness?: number | null
+    generation?: number
+  }>
+  error?: string | null
+}
+
 export interface Snapshot {
   id: string
   name: string

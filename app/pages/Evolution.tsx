@@ -19,6 +19,8 @@ import HistoryPanel from '@/components/evolution/HistoryPanel';
 import HistoryTimeline from '@/components/evolution/HistoryTimeline';
 import SaveSnapshotDialog from '@/components/evolution/SaveSnapshotDialog';
 
+const USE_SERVER_RUNNER = (import.meta.env.VITE_USE_SERVER_RUNNER ?? 'true') === 'true';
+
 export default function Evolution() {
     const [activeTab, setActiveTab] = useState('setup');
     const [problem, setProblem] = useState('');
@@ -46,6 +48,7 @@ export default function Evolution() {
     const [evolvingIds, setEvolvingIds] = useState([]);
     const [evolutionTypes, setEvolutionTypes] = useState({});
     const [sessionId, setSessionId] = useState(null);
+    const [serverRunId, setServerRunId] = useState<string | null>(null);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
     const [isViewingHistory, setIsViewingHistory] = useState(false);
     const [currentSnapshotId, setCurrentSnapshotId] = useState(null);
@@ -316,6 +319,111 @@ export default function Evolution() {
         };
     }, [addActivity, problem, currentGeneration]);
 
+    const runServerEvolution = useCallback(async () => {
+        evolutionRef.current.shouldStop = false;
+        evolutionRef.current.isPaused = false;
+
+        setIsRunning(true);
+        setIsPaused(false);
+        setActiveTab('evolution');
+        setActivities([]);
+        setGenerations([]);
+        setChampion(null);
+        setChampionGeneration(null);
+        setIsViewingHistory(false);
+        setCurrentSnapshotId(null);
+
+        const newSessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        setSessionId(newSessionId);
+
+        addActivity('evaluation', 'Starting server evolution...', 'Launching EvolutionRunner');
+
+        try {
+            const start = await backendApi.evolution.startEvolutionRun({
+                problem,
+                criteria,
+                config: {
+                    numGenerations: config.generations,
+                    maxParallelJobs: 1,
+                    patchTypes: ['full'],
+                    patchTypeProbs: [1.0],
+                    condaEnv: null,
+                    resultsDir: null
+                }
+            });
+            setServerRunId(start.runId);
+
+            const pollStatus = async () => {
+                if (evolutionRef.current.shouldStop) {
+                    setIsRunning(false);
+                    return;
+                }
+                try {
+                    const status = await backendApi.evolution.getEvolutionRunStatus(start.runId);
+                    setCurrentGeneration(status.lastGeneration ?? 0);
+
+                    if (status.bestProgram?.code) {
+                        const fitness =
+                            status.bestProgram.combined_score ??
+                            status.bestProgram.public_metrics?.combined_score ??
+                            status.bestProgram.public_metrics?.score ??
+                            null;
+
+                        const bestSolution = {
+                            id: status.bestProgram.id || 'best-program',
+                            text: status.bestProgram.markdown || status.bestProgram.code,
+                            fitness,
+                            criteriaScores: {},
+                            generation: status.bestProgram.generation ?? (status.lastGeneration ?? 0)
+                        };
+
+                        setChampion(bestSolution);
+                        setChampionGeneration(bestSolution.generation);
+                        addActivity('evaluation', 'Best solution updated', `Gen ${bestSolution.generation}`, bestSolution.fitness ?? undefined);
+                    }
+
+                    if (status.topPrograms && status.topPrograms.length > 0) {
+                        const mapped = status.topPrograms.map((p, idx) => ({
+                            id: p.id || `prog-${idx}`,
+                            text: p.markdown || p.code,
+                            fitness: p.fitness ?? null,
+                            criteriaScores: {},
+                            generation: p.generation ?? (status.lastGeneration ?? 0)
+                        }));
+                        setPopulation(mapped);
+                        // ensure champion in population
+                        if (mapped[0]) {
+                            setChampion(mapped[0]);
+                            setChampionGeneration(mapped[0].generation);
+                        }
+                    }
+
+                    if (status.status === 'running') {
+                        setTimeout(pollStatus, 4000);
+                    } else {
+                        setIsRunning(false);
+                        setIsPaused(false);
+                        if (status.status === 'completed') {
+                            addActivity('evaluation', 'Evolution completed', `Results stored in ${status.resultsDir}`);
+                        } else {
+                            addActivity('error', 'Evolution failed', status.error || 'Unknown error');
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to poll evolution status', err);
+                    addActivity('error', 'Failed to poll evolution status', String(err));
+                    setIsRunning(false);
+                }
+            };
+
+            pollStatus();
+        } catch (error) {
+            console.error('Failed to start server evolution', error);
+            addActivity('error', 'Failed to start server evolution', String(error));
+            setIsRunning(false);
+        }
+    }, [addActivity, config.generations, criteria, problem]);
+
     const createNextGeneration = useCallback(async (evaluatedPopulation) => {
         const newPopulation = [];
         const newEvolutionTypes = {};
@@ -357,6 +465,11 @@ export default function Evolution() {
     }, [config.populationSize, config.crossoverRate, config.mutationRate, selectParents, crossover, mutate]);
 
     const runEvolution = async () => {
+        if (USE_SERVER_RUNNER) {
+            await runServerEvolution();
+            return;
+        }
+
         evolutionRef.current.shouldStop = false;
         evolutionRef.current.isPaused = false;
 

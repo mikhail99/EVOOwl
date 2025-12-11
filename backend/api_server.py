@@ -15,10 +15,14 @@ import os
 import random
 import time
 from pathlib import Path
+import sys
+from threading import Thread
+import uuid
 from typing import Dict, List, Optional
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
@@ -28,6 +32,11 @@ LLM_BASE_URL = os.getenv("EVOLVE_LLM_BASE_URL", os.getenv("OLLAMA_BASE_URL", "ht
 LLM_API_KEY = os.getenv("EVOLVE_LLM_API_KEY", os.getenv("OLLAMA_API_KEY", "ollama"))
 LLM_MODEL = os.getenv("EVOLVE_LLM_MODEL", "ollama:gemma3:latest")
 LLM_TIMEOUT = float(os.getenv("EVOLVE_LLM_TIMEOUT", "15.0"))
+
+# Ensure local backend modules (shinka, etc.) are importable when running from repo root
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 
 def _load_snapshots() -> List[Dict]:
@@ -162,10 +171,202 @@ class SnapshotCreateResponse(BaseModel):
 
 app = FastAPI(title="EvoOwl API", openapi_url=f"{APP_PREFIX}/openapi.json", docs_url=f"{APP_PREFIX}/docs")
 
+# Allow local frontends (e.g., Vite on 5173) to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ----------------------------
+# EvolutionRunner integration
+# ----------------------------
+from shinka.core.runner import EvolutionRunner, EvolutionConfig
+from shinka.database import ProgramDatabase, DatabaseConfig
+from shinka.launch import LocalJobConfig
+
+# Track running server-side evolution jobs
+RUN_JOBS: Dict[str, Dict] = {}
+
+
+class EvolutionRunConfig(BaseModel):
+    numGenerations: int = 3
+    maxParallelJobs: int = 1
+    patchTypes: List[str] = Field(default_factory=lambda: ["full"])
+    patchTypeProbs: List[float] = Field(default_factory=lambda: [1.0])
+    condaEnv: Optional[str] = None
+    resultsDir: Optional[str] = None
+
+
+class EvolutionRunRequest(BaseModel):
+    problem: str
+    criteria: List[Criterion]
+    config: Optional[EvolutionRunConfig] = None
+
+
+class EvolutionRunStartResponse(BaseModel):
+    runId: str
+    resultsDir: str
+
+
+class EvolutionRunStatusResponse(BaseModel):
+    runId: str
+    status: str
+    resultsDir: str
+    lastGeneration: Optional[int] = None
+    bestProgram: Optional[Dict] = None
+    topPrograms: Optional[List[Dict]] = None
+    error: Optional[str] = None
+
 
 @app.get(f"{APP_PREFIX}/health")
 def health():
     return {"status": "ok"}
+
+
+def _build_evo_runner(req: EvolutionRunRequest, run_id: str, results_dir: Path) -> EvolutionRunner:
+    cfg = req.config or EvolutionRunConfig()
+    evo_config = EvolutionConfig(
+        init_program_path="backend/initial.py",
+        num_generations=cfg.numGenerations,
+        patch_types=cfg.patchTypes,
+        patch_type_probs=cfg.patchTypeProbs,
+        language="python",
+        llm_models=[os.getenv("EVOLVE_LLM_MODEL", "ollama:gemma3:latest")],
+        embedding_model=os.getenv("EVOLVE_EMBED_MODEL", "ollama:nomic-embed-text"),
+        llm_kwargs={"temperatures": 0.3, "max_tokens": 2048},
+        results_dir=str(results_dir),
+        max_parallel_jobs=cfg.maxParallelJobs,
+    )
+    job_config = LocalJobConfig(
+        eval_program_path="backend/evaluate.py",
+        conda_env=cfg.condaEnv or None,
+    )
+    db_config = DatabaseConfig()
+    return EvolutionRunner(
+        evo_config=evo_config,
+        job_config=job_config,
+        db_config=db_config,
+        verbose=False,
+    )
+
+
+def _program_to_markdown(code: str) -> str:
+    """
+    Convert a mutated python program (with EVOLVE block) into markdown.
+    Best-effort: extract the doc dict between EVOLVE-BLOCK markers.
+    """
+    try:
+        import re
+        import ast
+
+        # Extract doc = { ... } between markers
+        block_match = re.search(r"EVOLVE-BLOCK-START(.*)EVOLVE-BLOCK-END", code, re.S)
+        if not block_match:
+            return code.strip()
+        block_text = block_match.group(1)
+        doc_match = re.search(r"doc\s*=\s*(\{.*\})", block_text, re.S)
+        if not doc_match:
+            return code.strip()
+        doc_text = doc_match.group(1)
+        # Safely parse dict
+        doc_obj = ast.literal_eval(doc_text)
+        if not isinstance(doc_obj, dict):
+            return code.strip()
+        parts = []
+        for k, v in doc_obj.items():
+            parts.append(f"## {k}\n{str(v).strip()}")
+        return "\n\n".join(parts).strip()
+    except Exception:
+        return code.strip()
+
+
+def _start_runner_async(run_id: str, req: EvolutionRunRequest, results_dir: Path) -> None:
+    def _runner():
+        try:
+            runner = _build_evo_runner(req, run_id, results_dir)
+            runner.run()
+            RUN_JOBS[run_id]["status"] = "completed"
+        except Exception as e:  # pragma: no cover - background error path
+            RUN_JOBS[run_id]["status"] = "failed"
+            RUN_JOBS[run_id]["error"] = str(e)
+
+    thread = Thread(target=_runner, daemon=True)
+    RUN_JOBS[run_id] = {
+        "status": "running",
+        "results_dir": str(results_dir),
+        "thread": thread,
+        "error": None,
+    }
+    thread.start()
+
+
+@app.post(f"{APP_PREFIX}/evolution/run/start", response_model=EvolutionRunStartResponse)
+def start_evolution_run(req: EvolutionRunRequest):
+    run_id = f"run-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
+    base_results = Path(req.config.resultsDir) if req.config and req.config.resultsDir else Path(f"results_{run_id}")
+    results_dir = base_results.resolve()
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    _start_runner_async(run_id, req, results_dir)
+
+    return {"runId": run_id, "resultsDir": str(results_dir)}
+
+
+def _load_run_status(run_id: str) -> EvolutionRunStatusResponse:
+    job = RUN_JOBS.get(run_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    status = job.get("status", "unknown")
+    results_dir = Path(job.get("results_dir", "."))
+    db_path = results_dir / DatabaseConfig().db_path
+
+    last_gen: Optional[int] = None
+    best_program: Optional[Dict] = None
+    top_programs: List[Dict] = []
+    if db_path.exists():
+        db = ProgramDatabase(
+            config=DatabaseConfig(db_path=str(db_path)),
+            embedding_model=os.getenv("EVOLVE_EMBED_MODEL", "text-embedding-3-small"),
+            read_only=True,
+        )
+        last_gen = getattr(db, "last_iteration", None)
+        best = db.get_best_program()
+        if best:
+            best_program = best.to_dict()
+            # Include plain code text for convenience
+            best_program["code"] = best.code
+            best_program["markdown"] = _program_to_markdown(best.code)
+        tops = db.get_top_programs(n=8, metric="combined_score", correct_only=False)
+        for p in tops:
+            entry = p.to_dict()
+            entry["code"] = p.code
+            entry["markdown"] = _program_to_markdown(p.code)
+            # derive fitness from combined_score or metrics
+            entry["fitness"] = (
+                p.combined_score
+                or (p.public_metrics or {}).get("combined_score")
+                or (p.public_metrics or {}).get("score")
+            )
+            top_programs.append(entry)
+
+    return EvolutionRunStatusResponse(
+        runId=run_id,
+        status=status,
+        resultsDir=str(results_dir),
+        lastGeneration=last_gen,
+        bestProgram=best_program,
+        topPrograms=top_programs or None,
+        error=job.get("error"),
+    )
+
+
+@app.get(f"{APP_PREFIX}/evolution/run/{{run_id}}/status", response_model=EvolutionRunStatusResponse)
+def get_evolution_run_status(run_id: str):
+    return _load_run_status(run_id)
 
 
 @app.post(f"{APP_PREFIX}/evolution/initial", response_model=InitialResponse)
