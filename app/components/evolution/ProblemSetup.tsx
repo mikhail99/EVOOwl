@@ -15,7 +15,6 @@ import {
     Lightbulb,
     Settings2
 } from 'lucide-react';
-import DNAHelix from './DNAHelix';
 
 export default function ProblemSetup({
     problem,
@@ -66,11 +65,21 @@ export default function ProblemSetup({
                             placeholder="Describe the problem you want to evolve solutions for..."
                             className="bg-slate-800/50 border-slate-700 text-slate-200 placeholder:text-slate-500 min-h-[120px] resize-none focus:border-violet-500/50 focus:ring-violet-500/20"
                         />
-                        <div className="flex items-center gap-2 mt-3">
-                            <Lightbulb className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs text-slate-500">
-                                Be specific and detailed for better results
-                            </span>
+                        <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center gap-2">
+                                <Lightbulb className="w-4 h-4 text-amber-400" />
+                                <span className="text-xs text-slate-500">
+                                    Be specific and detailed for better results
+                                </span>
+                            </div>
+                            <Button
+                                size="sm"
+                                disabled={!isValid}
+                                onClick={onStartEvolution}
+                                className="bg-gradient-to-r from-violet-600 to-teal-600 hover:from-violet-500 hover:to-teal-500 text-white px-4 py-2 rounded-lg font-medium shadow-lg shadow-violet-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Begin Evolution
+                            </Button>
                         </div>
                     </div>
                 </Card>
@@ -239,30 +248,6 @@ export default function ProblemSetup({
                 </Card>
             </motion.div>
 
-            {/* Start Button */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex justify-center"
-            >
-                <Button
-                    size="lg"
-                    disabled={!isValid}
-                    onClick={onStartEvolution}
-                    className="relative group bg-gradient-to-r from-violet-600 to-teal-600 hover:from-violet-500 hover:to-teal-500 text-white px-8 py-6 rounded-2xl text-lg font-semibold shadow-xl shadow-violet-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <span className="relative z-10 flex items-center gap-3">
-                        <DNAHelix size="sm" />
-                        Begin Evolution
-                    </span>
-                    <motion.div
-                        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-500/20 to-teal-500/20"
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                    />
-                </Button>
-            </motion.div>
         </div>
     );
 }
