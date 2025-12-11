@@ -34,6 +34,8 @@ def main():
         population_size=5,
         language="python",
         task_sys_msg=MUTATION_SYSTEM_PROMPT,
+        llm_models=["ollama:llama3"],
+        embedding_model="ollama:nomic-embed-text",
     )
 
     runner = EvolutionRunner(

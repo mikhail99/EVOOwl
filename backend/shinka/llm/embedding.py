@@ -1,4 +1,5 @@
 import os
+import re
 import openai
 import google.generativeai as genai
 import pandas as pd
@@ -57,6 +58,14 @@ def get_client_model(model_name: str) -> tuple[Union[openai.OpenAI, str], str]:
         genai.configure(api_key=api_key)
         client = "gemini"  # Use string identifier for Gemini
         model_to_use = model_name
+    elif model_name.startswith("ollama:") or model_name.startswith("ollama-"):
+        # Pattern allows `ollama:nomic-embed-text` or `ollama-nomic-embed-text`
+        model_to_use = re.sub(r"^ollama[:\-]", "", model_name)
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+        client = openai.OpenAI(
+            api_key=os.getenv("OLLAMA_API_KEY", "ollama"),
+            base_url=base_url,
+        )
     else:
         raise ValueError(f"Invalid embedding model: {model_name}")
 
@@ -128,7 +137,9 @@ class EmbeddingClient:
             response = self.client.embeddings.create(
                 model=self.model, input=code, encoding_format="float"
             )
-            cost = response.usage.total_tokens * OPENAI_EMBEDDING_COSTS[self.model]
+            usage_cost = OPENAI_EMBEDDING_COSTS.get(self.model, 0.0)
+            usage_tokens = getattr(getattr(response, "usage", None), "total_tokens", 0)
+            cost = usage_tokens * usage_cost
             # Extract embedding from response
             if single_code:
                 return response.data[0].embedding, cost
