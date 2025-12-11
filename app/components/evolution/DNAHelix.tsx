@@ -92,28 +92,6 @@ export default function DNAHelix({ className = "", size = "md" as DNAHelixSize, 
     return { left: leftColors, right: rightColors };
   }, []);
 
-  // Log colors of all balls
-  const logBallColors = () => {
-    console.log(`=== Generation ${generation} ===`);
-    console.log(`Parent A (${beads * 2} balls):`);
-    for (let i = 0; i < beads; i++) {
-      console.log(`  Segment ${i}: Left=${currentParents.parentA.left[i]}, Right=${currentParents.parentA.right[i]}`);
-    }
-    console.log(`Parent B (${beads * 2} balls):`);
-    for (let i = 0; i < beads; i++) {
-      console.log(`  Segment ${i}: Left=${currentParents.parentB.left[i]}, Right=${currentParents.parentB.right[i]}`);
-    }
-    console.log(`Child A (${beads * 2} balls):`);
-    for (let i = 0; i < beads; i++) {
-      console.log(`  Segment ${i}: Left=${currentOffspring.child1.left[i]}, Right=${currentOffspring.child1.right[i]}`);
-    }
-    console.log(`Child B (${beads * 2} balls):`);
-    for (let i = 0; i < beads; i++) {
-      console.log(`  Segment ${i}: Left=${currentOffspring.child2.left[i]}, Right=${currentOffspring.child2.right[i]}`);
-    }
-    console.log('='.repeat(50));
-  };
-
   // Current parent DNA sequences
   const [currentParents, setCurrentParents] = React.useState({
     parentA: initialParentA,
@@ -126,17 +104,11 @@ export default function DNAHelix({ className = "", size = "md" as DNAHelixSize, 
     child2: crossover(initialParentB, initialParentA), // Reverse crossover for variety
   }));
 
-  // Log initial colors
-  React.useEffect(() => {
-    logBallColors();
-  }, []);
-
   // Generate new offspring and evolve parents only when active
   React.useEffect(() => {
     if (!active) return;
     const interval = setInterval(() => {
       setGeneration(prev => prev + 1);
-      logBallColors();
 
       // Parents become the previous offspring
       setCurrentParents({

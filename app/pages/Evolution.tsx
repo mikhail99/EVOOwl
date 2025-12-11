@@ -492,7 +492,7 @@ export default function Evolution() {
                             </motion.div>
                             <div>
                                 <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-teal-400 bg-clip-text text-transparent">
-                                    Solution Evolution
+                                    Plan Evolution
                                 </h1>
                                 <p className="text-sm text-slate-400">Genetic Algorithm for Text Solutions</p>
                             </div>
