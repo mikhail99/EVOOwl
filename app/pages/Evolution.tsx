@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { base44 } from '@/api/base44Client';
+import { backendApi } from '@/api/backendClient';
+import { Solution, Criterion, Snapshot } from '@/api/types';
 import { Dna, Settings, BarChart3, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -54,13 +55,9 @@ export default function Evolution() {
     const evolutionRef = useRef({ shouldStop: false, isPaused: false });
 
     // Load snapshots for current session
-    const { data: snapshots = [], refetch: refetchSnapshots } = useQuery({
+    const { data: snapshots = [], refetch: refetchSnapshots } = useQuery<Snapshot[]>({
         queryKey: ['evolutionSnapshots', sessionId],
-        queryFn: async () => {
-            if (!sessionId) return [];
-            const allSnapshots = await base44.entities.EvolutionSnapshot.list('-created_date', 100);
-            return allSnapshots.filter(s => s.session_id === sessionId);
-        },
+        queryFn: async () => sessionId ? backendApi.snapshots.list(sessionId) : [],
         enabled: !!sessionId,
         initialData: []
     });
@@ -99,7 +96,7 @@ export default function Evolution() {
                 session_id: sessionId
             };
 
-            const snapshot = await base44.entities.EvolutionSnapshot.create(snapshotData);
+            const snapshot = await backendApi.snapshots.create(snapshotData as Omit<Snapshot, 'id' | 'created_date'>);
             await refetchSnapshots();
 
             if (snapshotType === 'manual') {
@@ -147,7 +144,7 @@ export default function Evolution() {
     // Delete snapshot
     const deleteSnapshot = useCallback(async (snapshotId) => {
         try {
-            await base44.entities.EvolutionSnapshot.delete(snapshotId);
+            await backendApi.snapshots.delete(snapshotId);
             await refetchSnapshots();
 
             if (snapshotId === currentSnapshotId) {
@@ -191,95 +188,33 @@ export default function Evolution() {
         setShowSaveDialog(false);
     }, [saveSnapshot]);
 
-    const generateInitialPopulation = async () => {
+    const generateInitialPopulation = async (): Promise<Solution[]> => {
         addActivity('evaluation', 'Generating initial population...', `Creating ${config.populationSize} diverse solutions`);
 
-        const criteriaText = criteria
-            .filter(c => c.name.trim())
-            .map(c => `${c.name} (weight: ${c.weight})`)
-            .join(', ');
-
-        const response = await base44.integrations.Core.InvokeLLM({
-            prompt: `Generate ${config.populationSize} distinct and creative solutions for the following problem:
-
-Problem: ${problem}
-
-Evaluation Criteria: ${criteriaText}
-
-For each solution, provide a unique approach. Return as JSON array with objects containing "text" field only.
-Make each solution substantially different in approach, methodology, or perspective.`,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    solutions: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                text: { type: "string" }
-                            },
-                            required: ["text"]
-                        }
-                    }
-                },
-                required: ["solutions"]
-            }
+        const solutions = await backendApi.evolution.generateInitialPopulation({
+            problem,
+            criteria,
+            populationSize: config.populationSize
         });
 
-        const solutions = (response.solutions || []).map((s, i) => ({
-            id: `gen0-${i}-${Date.now()}`,
-            text: s.text,
-            fitness: null,
-            criteriaScores: {},
+        return solutions.map((s) => ({
+            ...s,
+            fitness: s.fitness ?? null,
+            criteriaScores: s.criteriaScores || {},
             generation: 0
         }));
-
-        return solutions;
     };
 
-    const evaluateSolution = async (solution) => {
-        const criteriaText = criteria
-            .filter(c => c.name.trim())
-            .map(c => `${c.name} (weight: ${c.weight})`)
-            .join(', ');
-
-        const criteriaNames = criteria.filter(c => c.name.trim()).map(c => c.name);
-
-        const scoreProperties = {};
-        criteriaNames.forEach(name => {
-            scoreProperties[name] = { type: "number", minimum: 0, maximum: 10 };
-        });
-
-        const response = await base44.integrations.Core.InvokeLLM({
-            prompt: `Evaluate this solution for the given problem.
-
-Problem: ${problem}
-
-Solution: ${solution.text}
-
-Criteria to evaluate (each scored 0-10):
-${criteriaText}
-
-Score each criterion from 0-10. Calculate overall fitness as weighted average.`,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    scores: {
-                        type: "object",
-                        properties: scoreProperties
-                    },
-                    overall_fitness: { type: "number", minimum: 0, maximum: 100 },
-                    reasoning: { type: "string" }
-                },
-                required: ["scores", "overall_fitness"]
-            }
+    const evaluateSolution = async (solution: Solution) => {
+        const updated = await backendApi.evolution.evaluateSolution({
+            problem,
+            criteria,
+            solution
         });
 
         return {
             ...solution,
-            fitness: response.overall_fitness || 0,
-            criteriaScores: response.scores || {},
-            reasoning: response.reasoning
+            ...updated
         };
     };
 
@@ -334,40 +269,25 @@ Score each criterion from 0-10. Calculate overall fitness as weighted average.`,
         return selected;
     }, [addActivity]);
 
-    const crossover = useCallback(async (parent1, parent2) => {
+    const crossover = useCallback(async (parent1: Solution, parent2: Solution) => {
         addActivity('crossover', 'Performing crossover...', 'Combining two parent solutions');
 
-        const response = await base44.integrations.Core.InvokeLLM({
-            prompt: `Create a new solution by synthesizing the best ideas from these two parent solutions.
-
-Problem: ${problem}
-
-Parent Solution 1: ${parent1.text}
-
-Parent Solution 2: ${parent2.text}
-
-Create a coherent new solution that combines the strongest aspects of both parents.
-The result should be a novel synthesis, not just concatenation.`,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    text: { type: "string" }
-                },
-                required: ["text"]
-            }
+        const child = await backendApi.evolution.crossover({
+            problem,
+            parent1,
+            parent2
         });
 
         return {
-            id: `cross-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            text: response.text,
-            fitness: null,
-            criteriaScores: {},
-            generation: currentGeneration + 1,
-            parentIds: [parent1.id, parent2.id]
+            ...child,
+            fitness: child.fitness ?? null,
+            criteriaScores: child.criteriaScores || {},
+            generation: child.generation ?? currentGeneration + 1,
+            parentIds: child.parentIds ?? [parent1.id, parent2.id]
         };
     }, [addActivity, problem, currentGeneration]);
 
-    const mutate = useCallback(async (solution) => {
+    const mutate = useCallback(async (solution: Solution) => {
         addActivity('mutation', 'Performing mutation...', 'Introducing variation');
 
         const mutationTypes = [
@@ -380,31 +300,19 @@ The result should be a novel synthesis, not just concatenation.`,
 
         const mutationType = mutationTypes[Math.floor(Math.random() * mutationTypes.length)];
 
-        const response = await base44.integrations.Core.InvokeLLM({
-            prompt: `Mutate this solution by: ${mutationType}
-
-Problem: ${problem}
-
-Original Solution: ${solution.text}
-
-Create a modified version that maintains the core value while introducing meaningful variation.`,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    text: { type: "string" }
-                },
-                required: ["text"]
-            }
+        const child = await backendApi.evolution.mutate({
+            problem,
+            solution,
+            mutationType
         });
 
         return {
-            id: `mut-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            text: response.text,
-            fitness: null,
-            criteriaScores: {},
-            generation: currentGeneration + 1,
-            parentId: solution.id,
-            mutationType
+            ...child,
+            fitness: child.fitness ?? null,
+            criteriaScores: child.criteriaScores || {},
+            generation: child.generation ?? currentGeneration + 1,
+            parentId: child.parentId ?? solution.id,
+            mutationType: child.mutationType ?? mutationType
         };
     }, [addActivity, problem, currentGeneration]);
 
