@@ -5,138 +5,81 @@
 # 4. Structural Redesign
 # 5. Parametric Design
 
-# Original/Default Full Rewrite
+# Original/Default Full Rewrite (adapted for text clarity/structure)
 FULL_SYS_FORMAT_DEFAULT = """
-Rewrite the program to improve its performance on the specified metrics.
-Provide the complete new program code.
-You MUST respond using a short summary name, description and the full code:
+Rewrite the text inside the EVOLVE-BLOCK to improve clarity, structure, and actionability.
+Return the full file, but only edit the text inside EVOLVE-BLOCK-START/END. Do not change anything else.
 
-<NAME>
-A shortened name summarizing the code you are proposing. Lowercase, no spaces, underscores allowed.
-</NAME>
+You MUST respond with ONLY the rewritten file inside a markdown code fence:
 
-<DESCRIPTION>
-A description and argumentation process of the code you are proposing.
-</DESCRIPTION>
-
-<CODE>
 ```{language}
-# The new rewritten program here.
+# full file content here
 ```
-</CODE>
 
-* Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in the code. Do not change the code outside of these markers.
-* Make sure your rewritten program maintains the same inputs and outputs as the original program, but with improved internal implementation.
-* Make sure the file still runs after your changes.
-* Use the <NAME>, <DESCRIPTION>, and <CODE> delimiters to structure your response. It will be parsed afterwards."""
+Rules:
+- Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in place.
+- Do not add or remove code outside the EVOLVE-BLOCK.
+- Focus on rewriting the text (clarity, structure, actionability), not changing function names or logic.
+- Ensure the file remains valid Python."""
 
-# Variant 1: Completely Different Algorithm
+# Variant 1: Alternative framing for text rewrite
 FULL_SYS_FORMAT_DIFFERENT = """
-Design a completely different algorithm approach to solve the same problem.
-Ignore the current implementation and think of alternative algorithmic strategies that could achieve better performance.
-You MUST respond using a short summary name, description and the full code:
+Rewrite the EVOLVE-BLOCK text with a different framing or narrative, while preserving meaning.
+Return the full file in a markdown code fence:
 
-<NAME>
-A shortened name summarizing the code you are proposing. Lowercase, no spaces, underscores allowed.
-</NAME>
-
-<DESCRIPTION>
-Explain the completely different algorithmic approach you are taking and why it should perform better than the current implementation.
-</DESCRIPTION>
-
-<CODE>
 ```{language}
-# The completely new algorithm implementation here.
+# full file content here
 ```
-</CODE>
 
-* Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in the code.
-* Your algorithm should solve the same problem but use a fundamentally different approach.
-* Ensure the same inputs and outputs are maintained.
-* Think outside the box - consider different data structures, algorithms, or paradigms.
-* Use the <NAME>, <DESCRIPTION>, and <CODE> delimiters to structure your response. It will be parsed afterwards."""
+Rules:
+- Only change the text inside EVOLVE-BLOCK-START/END.
+- Keep structure clear and actionable (headings, bullets, steps as needed).
+- Do not change code outside the EVOLVE block."""
 
 
-# Variant 2: Motivated by Context but Different
+# Variant 2: Context-inspired text polish
 FULL_SYS_FORMAT_MOTIVATED = """
-Create a novel algorithm that draws inspiration from the provided context programs but implements a fundamentally different approach.
-Study the patterns and techniques from the examples, then design something new.
-You MUST respond using a short summary name, description and the full code:
+Polish the EVOLVE-BLOCK text using inspiration from prior attempts (if provided), but keep meaning intact.
+Return the full file in a markdown code fence:
 
-<NAME>
-A shortened name summarizing the code you are proposing. Lowercase, no spaces, underscores allowed.
-</NAME>
-
-<DESCRIPTION>
-Explain how you drew inspiration from the context programs and what novel approach you are implementing. Detail the key insights that led to this design.
-</DESCRIPTION>
-
-<CODE>
 ```{language}
-# The inspired but novel algorithm implementation here.
+# full file content here
 ```
-</CODE>
 
-* Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in the code.
-* Learn from the context programs but don't copy their approaches directly.
-* Combine ideas in novel ways or apply insights to different algorithmic paradigms.
-* Maintain the same inputs and outputs as the original program.
-* Use the <NAME>, <DESCRIPTION>, and <CODE> delimiters to structure your response. It will be parsed afterwards."""
+Rules:
+- Only modify text within EVOLVE-BLOCK-START/END.
+- Improve clarity, coherence, and actionable phrasing.
+- Keep the rest of the file unchanged."""
 
 
-# Variant 3: Structural Modification
+# Variant 3: Structural rephrase
 FULL_SYS_FORMAT_STRUCTURAL = """
-Redesign the program with a different structural approach while potentially using similar core concepts.
-Focus on changing the overall architecture, data flow, or program organization.
-You MUST respond using a short summary name, description and the full code:
+Rephrase and restructure the EVOLVE-BLOCK text for readability (headings, bullets, short sentences).
+Return the full file in a markdown code fence:
 
-<NAME>
-A shortened name summarizing the code you are proposing. Lowercase, no spaces, underscores allowed.
-</NAME>
-
-<DESCRIPTION>
-Describe the structural changes you are making and how they improve the program's performance, maintainability, or efficiency.
-</DESCRIPTION>
-
-<CODE>
 ```{language}
-# The structurally redesigned program here.
+# full file content here
 ```
-</CODE>
 
-* Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in the code.
-* Focus on changing the program's structure: modularization, data flow, control flow, or architectural patterns.
-* The core problem-solving approach may be similar but organized differently.
-* Ensure the same inputs and outputs are maintained.
-* Use the <NAME>, <DESCRIPTION>, and <CODE> delimiters to structure your response. It will be parsed afterwards."""
+Rules:
+- Edit only inside EVOLVE-BLOCK-START/END.
+- Prefer concise bullet points or numbered steps for clarity.
+- Keep semantics intact; do not alter code outside the block."""
 
 
-# Variant 4: Parameter-Based Algorithm Design
+# Variant 4: Concise rewrite
 FULL_SYS_FORMAT_PARAMETRIC = """
-Analyze the current program to identify its key parameters and algorithmic components, then design a new algorithm with different parameter settings and configurations.
-You MUST respond using a short summary name, description and the full code:
+Condense and clarify the EVOLVE-BLOCK text with minimal wording while preserving meaning.
+Return the full file in a markdown code fence:
 
-<NAME>
-A shortened name summarizing the code you are proposing. Lowercase, no 
-spaces, underscores allowed.
-</NAME>
-
-<DESCRIPTION>
-Identify the key parameters in the current approach and explain how your new parameter choices or algorithmic configuration will lead to better performance.
-</DESCRIPTION>
-
-<CODE>
 ```{language}
-# The new parametric algorithm implementation here.
+# full file content here
 ```
-</CODE>
 
-* Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in the code.
-* Identify parameters like: learning rates, iteration counts, thresholds, weights, selection criteria, etc.
-* Design a new algorithm with different parameter values or configurations.
-* Consider adaptive parameters, different optimization strategies, or alternative heuristics.
-* Maintain the same inputs and outputs as the original program.
-* Use the <NAME>, <DESCRIPTION>, and <CODE> delimiters to structure your response. It will be parsed afterwards."""
+Rules:
+- Only edit text inside EVOLVE-BLOCK-START/END.
+- Keep sentences short and direct; remove redundancy.
+- Do not modify code outside the block."""
 
 # List of all variants for sampling
 FULL_SYS_FORMATS = [
@@ -156,24 +99,20 @@ FULL_SYS_FORMAT_NAMES = [
     "parametric_design",
 ]
 
-FULL_ITER_MSG = """# Current program
+FULL_ITER_MSG = """# Current file
 
-Here is the current program we are trying to improve (you will need to 
-propose a new program with the same inputs and outputs as the original 
-program, but with improved internal implementation):
+Here is the current file to improve (edit text only inside EVOLVE-BLOCK):
 
 ```{language}
 {code_content}
 ```
 
-Here are the performance metrics of the program:
+Here are the current metrics/feedback:
 
 {performance_metrics}{text_feedback_section}
 
 # Task
 
-Rewrite the program to improve its performance on the specified metrics.
-Provide the complete new program code.
-
-IMPORTANT: Make sure your rewritten program maintains the same inputs and outputs as the original program, but with improved internal implementation.
+Rewrite the EVOLVE-BLOCK text for clarity, structure, and actionability.
+Return the full file in a markdown code fence. Do not change code outside the EVOLVE block.
 """
