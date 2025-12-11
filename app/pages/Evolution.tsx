@@ -6,7 +6,6 @@ import { Dna, Settings, BarChart3, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import ParticleField from '@/components/evolution/ParticleField';
 import DNAHelix from '@/components/evolution/DNAHelix';
 import ProblemSetup from '@/components/evolution/ProblemSetup';
 import PopulationGrid from '@/components/evolution/PopulationGrid';
@@ -571,7 +570,6 @@ Create a modified version that maintains the core value while introducing meanin
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white overflow-hidden">
-            <ParticleField count={40} />
 
             {/* Header */}
             <header className="relative z-10 border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-xl">

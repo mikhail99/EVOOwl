@@ -12,7 +12,6 @@ import {
     Bookmark,
     History
 } from 'lucide-react';
-import DNAHelix from './DNAHelix';
 
 export default function EvolutionControls({
     isRunning,
@@ -38,15 +37,6 @@ export default function EvolutionControls({
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 {/* Status */}
                 <div className="flex items-center gap-4">
-                    {isRunning && !isPaused && (
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        >
-                            <DNAHelix size="sm" />
-                        </motion.div>
-                    )}
-
                     <div>
                         <div className="flex items-center gap-2">
                             <Badge
