@@ -38,6 +38,7 @@ def main():
         task_sys_msg=MUTATION_SYSTEM_PROMPT,
         llm_models=["ollama:qwen3:0.6b"],
         embedding_model="ollama:nomic-embed-text",
+        llm_kwargs={"temperatures": 0.3, "max_tokens": 2048},
     )
 
     runner = EvolutionRunner(

@@ -1,10 +1,63 @@
 import argparse
+import json
+import os
+import time
 from typing import Any, Dict, List, Optional, Tuple
+
+import httpx
 from shinka.core.wrap_eval import run_shinka_eval
 
 
+DEFAULT_MODEL = os.getenv("EVAL_LLM_MODEL", "ollama:qwen3:0.6b")
+DEFAULT_TEMP = float(os.getenv("EVAL_LLM_TEMPERATURE", "0.3"))
+DEFAULT_MAX_TOKENS = int(os.getenv("EVAL_LLM_MAX_TOKENS", "512"))
+DEFAULT_TIMEOUT = float(os.getenv("EVAL_LLM_TIMEOUT", "15.0"))  # seconds
+DRY_RUN = os.getenv("EVAL_LLM_DRY_RUN", "false").lower() == "true"
+BASE_URL = os.getenv("EVAL_LLM_BASE_URL", os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"))
+API_KEY = os.getenv("EVAL_LLM_API_KEY", os.getenv("OLLAMA_API_KEY", "ollama"))
+
+
+def _call_llm_judge(text: str) -> Tuple[float, str]:
+    """
+    Call local Ollama (OpenAI-compatible) to score the methodology text.
+    Returns (score_0_100, feedback_text).
+    """
+    prompt = (
+        "You are a concise reviewer. Score the methodology text from 0 to 100 for clarity, "
+        "structure, and actionability. Respond with JSON: {\"score\": <0-100>, "
+        "\"feedback\": \"...\"}. Keep feedback brief."
+    )
+    payload = {
+        "model": DEFAULT_MODEL.replace("ollama:", "").replace("ollama-", ""),
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
+        ],
+        "temperature": DEFAULT_TEMP,
+        "max_tokens": DEFAULT_MAX_TOKENS,
+    }
+
+    headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
+    with httpx.Client(base_url=BASE_URL, timeout=DEFAULT_TIMEOUT) as client:
+        resp = client.post("/chat/completions", json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+    # Extract content
+    content = data["choices"][0]["message"]["content"]
+    try:
+        parsed = json.loads(content)
+        score = float(parsed.get("score", 0.0))
+        feedback = str(parsed.get("feedback", "")).strip()
+    except Exception:
+        # Fallback: try to parse trailing JSON in content
+        score = 0.0
+        feedback = content.strip()
+    score = max(0.0, min(100.0, score))
+    return score, feedback
+
+
 def _aggregate_fn(results: List[Any]) -> Dict[str, Any]:
-    """Aggregate run results into metrics."""
+    """Aggregate run results into metrics with LLM judge fallback."""
     texts = [r for r in results if isinstance(r, str)]
     if not texts:
         return {
@@ -14,19 +67,36 @@ def _aggregate_fn(results: List[Any]) -> Dict[str, Any]:
             "text_feedback": "No methodology text produced.",
         }
 
-    # Simple heuristic: shorter, non-empty text scores better (placeholder until LLM scorer)
-    length = len(texts[0].strip())
+    text = texts[0].strip()
+    length = len(text)
     non_empty = length > 0
-    base_score = max(0.0, 100.0 - length * 0.1)
+
+    # Fallback heuristic
+    def heuristic():
+        base = max(0.0, 100.0 - length * 0.1)
+        return base, "Heuristic score favors concise, non-empty methodology text."
+
+    if DRY_RUN:
+        score, fb = heuristic()
+    else:
+        try:
+            start = time.time()
+            score, fb = _call_llm_judge(text)
+            elapsed = time.time() - start
+            fb = fb or "LLM judge returned no feedback."
+            fb = f"[LLM score in {elapsed:.1f}s] {fb}"
+        except Exception as e:
+            score, fb = heuristic()
+            fb = f"[LLM judge failed: {e}] {fb}"
 
     return {
-        "combined_score": base_score,
+        "combined_score": score,
         "public": {
             "length": length,
             "non_empty": non_empty,
         },
         "private": {},
-        "text_feedback": "Heuristic score favors concise, non-empty methodology text.",
+        "text_feedback": fb,
     }
 
 
