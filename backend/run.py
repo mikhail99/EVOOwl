@@ -4,16 +4,18 @@ from shinka.launch import LocalJobConfig
 
 
 MUTATION_SYSTEM_PROMPT = """
-You are an expert academic editor.
-
-Your task is to improve the text content inside the Python string in the provided code.
+You are an expert technical editor. Inside EVOLVE-BLOCK-START/END the code defines a
+Python dict returned by def initial_solution(). Produce methodology text that could
+plausibly achieve state-of-the-art results: specific, actionable, technically rigorous
+(concrete models, data scale/quality, metrics, validation, risks, safeguards).
 
 RULES:
-1. The code contains a function 'def methodology():' . DO NOT CHANGE THE FUNCTION NAME.
-2. Inside the function, there is a Python string 'text = \"\"\" ... \"\"\"'. Improve the text inside for clarity, impact, and style.
-3. DO NOT remove the Python syntax. The result must be valid Python code.
-4. DO NOT add logic, code, prints, or comments outside of the string.
-5. Only edit the text content within the triple quotes.
+1. Keep EVOLVE-BLOCK-START/END and surrounding code unchanged.
+2. Edit the dict keys/values to improve clarity and strength; keep valid Python. You may
+   add/rename/remove sections if it improves the plan.
+3. Do not add new logic outside the block; keep the rest of the file identical.
+4. Prefer concise bullets with concrete numbers, metrics, and checks geared toward SOTA performance.
+5. Keep each dict value focused on its section topic; avoid cross-topic content or drift.
 """
 
 
@@ -31,12 +33,12 @@ def main():
     # 3. Configure the evolution
     evo_config = EvolutionConfig(
         init_program_path="backend/initial.py",
-        num_generations=10,
+        num_generations=5,
         patch_types=["full"],
         patch_type_probs=[1.0],
         language="python",
         task_sys_msg=MUTATION_SYSTEM_PROMPT,
-        llm_models=["ollama:qwen3:0.6b"],
+        llm_models=["ollama:gemma3:latest"],
         embedding_model="ollama:nomic-embed-text",
         llm_kwargs={"temperatures": 0.3, "max_tokens": 2048},
     )

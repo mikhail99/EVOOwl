@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -8,7 +9,7 @@ import httpx
 from shinka.core.wrap_eval import run_shinka_eval
 
 
-DEFAULT_MODEL = os.getenv("EVAL_LLM_MODEL", "ollama:qwen3:0.6b")
+DEFAULT_MODEL = os.getenv("EVAL_LLM_MODEL", "ollama:gemma3:latest")
 DEFAULT_TEMP = float(os.getenv("EVAL_LLM_TEMPERATURE", "0.3"))
 DEFAULT_MAX_TOKENS = int(os.getenv("EVAL_LLM_MAX_TOKENS", "512"))
 DEFAULT_TIMEOUT = float(os.getenv("EVAL_LLM_TIMEOUT", "15.0"))  # seconds
@@ -24,7 +25,7 @@ def _call_llm_judge(text: str) -> Tuple[float, str]:
     """
     prompt = (
         "You are a concise reviewer. Score the methodology text from 0 to 100 for clarity, "
-        "structure, and actionability. Respond with JSON: {\"score\": <0-100>, "
+        "SOTA potential, structure, and actionability. Respond with JSON: {\"score\": <0-100>, "
         "\"feedback\": \"...\"}. Keep feedback brief."
     )
     payload = {
@@ -37,6 +38,18 @@ def _call_llm_judge(text: str) -> Tuple[float, str]:
         "max_tokens": DEFAULT_MAX_TOKENS,
     }
 
+    print(
+        "[LLM-JUDGE] request",
+        {
+            "model": payload["model"],
+            "temperature": payload["temperature"],
+            "max_tokens": payload["max_tokens"],
+            "text_len": len(text),
+            "prompt_preview": prompt[:200],
+        },
+        flush=True,
+    )
+
     headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
     with httpx.Client(base_url=BASE_URL, timeout=DEFAULT_TIMEOUT) as client:
         resp = client.post("/chat/completions", json=payload, headers=headers)
@@ -44,15 +57,41 @@ def _call_llm_judge(text: str) -> Tuple[float, str]:
         data = resp.json()
     # Extract content
     content = data["choices"][0]["message"]["content"]
-    try:
-        parsed = json.loads(content)
-        score = float(parsed.get("score", 0.0))
-        feedback = str(parsed.get("feedback", "")).strip()
-    except Exception:
-        # Fallback: try to parse trailing JSON in content
-        score = 0.0
-        feedback = content.strip()
+    print("[LLM-JUDGE] raw_content", content[:1000], flush=True)
+
+    def _extract_json_snippet(txt: str) -> Optional[str]:
+        """Find a JSON object even if wrapped in fences or extra text."""
+        # Common: ```json ... ```
+        fence_match = re.search(r"```json\s*([\s\S]*?)```", txt, re.IGNORECASE)
+        if fence_match:
+            return fence_match.group(1)
+        # Any {...} block
+        brace_match = re.search(r"\{[\s\S]*\}", txt)
+        if brace_match:
+            return brace_match.group(0)
+        return None
+
+    def _parse_score_and_feedback(raw: str) -> Tuple[float, str]:
+        try:
+            parsed = json.loads(raw)
+            return float(parsed.get("score", 0.0)), str(parsed.get("feedback", "")).strip()
+        except Exception:
+            snippet = _extract_json_snippet(raw)
+            if snippet:
+                try:
+                    parsed = json.loads(snippet)
+                    return float(parsed.get("score", 0.0)), str(parsed.get("feedback", "")).strip()
+                except Exception:
+                    pass
+            return 0.0, raw.strip()
+
+    score, feedback = _parse_score_and_feedback(content)
     score = max(0.0, min(100.0, score))
+    print(
+        "[LLM-JUDGE] parsed",
+        {"score": score, "feedback_preview": feedback[:500]},
+        flush=True,
+    )
     return score, feedback
 
 

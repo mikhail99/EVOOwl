@@ -1,21 +1,40 @@
-def methodology():
+def initial_solution():
     # EVOLVE-BLOCK-START
-    text = """
-    Methodology:
-    We define the methodology for the SPAD camera project as follows:
-    - We use a SPAD camera to capture the light from the object.
-    - We use a lens to focus the light on the SPAD camera.
-    - We use a filter to remove the noise from the light.
-    - We use a processor to process the light from the SPAD camera.
-    - We use a display to display the light from the SPAD camera.
-    """
+    doc = {
+        "overview": (
+            "Methodology for the SPAD camera project. Summarize objectives and approach for image classification."
+        ),
+        "data": (
+            "Capture 1000 images with a SPAD camera using an appropriate lens; filter noise before processing."
+        ),
+        "model": (
+            " Use a ResNet20 to classify the images into different classes."
+        ),
+        "training_steps": (
+            "Use the data and SGD to train the model."
+        ),
+        "validation": (
+            "Cross-validation with manually labeled data"
+        ),
+        "considerations": (
+            "1000 images may not be enough for training a model."
+        ),
+    }
     # EVOLVE-BLOCK-END
 
-    return text
+    return doc
 
 
 def run_experiment(**kwargs) -> str:
     """
     Entry point used by evaluate.py. Returns the methodology text to score.
     """
-    return methodology().strip()
+    doc = initial_solution() #initial solution is a function that returns a dictionary
+
+    if isinstance(doc, dict):
+        # Join sections into a markdown string for scoring
+        parts = []
+        for k, v in doc.items():
+            parts.append(f"## {k}\n{v.strip()}")
+        return "\n\n".join(parts).strip()
+    return str(doc).strip()

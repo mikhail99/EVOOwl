@@ -5,12 +5,16 @@
 # 4. Structural Redesign
 # 5. Parametric Design
 
-# Original/Default Full Rewrite (adapted for text clarity/structure)
+# Original/Default Full Rewrite (adapted for sectioned text clarity/structure)
 FULL_SYS_FORMAT_DEFAULT = """
-Rewrite the text inside the EVOLVE-BLOCK to improve clarity, structure, and actionability.
-Return the full file, but only edit the text inside EVOLVE-BLOCK-START/END. Do not change anything else.
+Rewrite ONLY the content inside EVOLVE-BLOCK-START/END. The code defines a Python dict
+with sections like: overview, data, model, training_steps, validation, considerations.
+Produce methodology text that could realistically lead to state-of-the-art results:
+specific, actionable, technically strong (concrete models, data needs, metrics, risks,
+safeguards). You may add or rename dict entries if it improves clarity, but keep the
+code valid.
 
-You MUST respond with ONLY the rewritten file inside a markdown code fence:
+Return the FULL FILE in a markdown code fence:
 
 ```{language}
 # full file content here
@@ -18,13 +22,16 @@ You MUST respond with ONLY the rewritten file inside a markdown code fence:
 
 Rules:
 - Keep the markers "EVOLVE-BLOCK-START" and "EVOLVE-BLOCK-END" in place.
-- Do not add or remove code outside the EVOLVE-BLOCK.
-- Focus on rewriting the text (clarity, structure, actionability), not changing function names or logic.
+- Do not modify code outside the EVOLVE-BLOCK.
+- Maintain valid Python dict syntax; adjust keys/values as needed for a better plan.
+- Prefer concise bullets with quantified details, metrics, and guardrails.
+- Keep each section’s value on-topic for its key; avoid mixing topics across sections.
 - Ensure the file remains valid Python."""
 
-# Variant 1: Alternative framing for text rewrite
+# Variant 1: Alternative framing for sectioned text
 FULL_SYS_FORMAT_DIFFERENT = """
-Rewrite the EVOLVE-BLOCK text with a different framing or narrative, while preserving meaning.
+Rephrase the EVOLVE-BLOCK dict with a stronger, alternative framing that could yield
+state-of-the-art outcomes. Keep or refine sections to maximize clarity and actionability.
 Return the full file in a markdown code fence:
 
 ```{language}
@@ -32,14 +39,17 @@ Return the full file in a markdown code fence:
 ```
 
 Rules:
-- Only change the text inside EVOLVE-BLOCK-START/END.
-- Keep structure clear and actionable (headings, bullets, steps as needed).
+- Edit keys/values inside the dict as needed, but keep code valid.
+- Prioritize concise, SOTA-worthy guidance: specific models, data, metrics, safeguards.
+- Keep each value focused on its section topic; do not drift across keys.
 - Do not change code outside the EVOLVE block."""
 
 
-# Variant 2: Context-inspired text polish
+# Variant 2: Context-inspired text polish (sectioned)
 FULL_SYS_FORMAT_MOTIVATED = """
-Polish the EVOLVE-BLOCK text using inspiration from prior attempts (if provided), but keep meaning intact.
+Polish the EVOLVE-BLOCK dict using prior attempts (if provided), pushing it toward a
+state-of-the-art methodology that could deliver top results. Keep or refine sections to
+increase specificity and rigor.
 Return the full file in a markdown code fence:
 
 ```{language}
@@ -47,14 +57,16 @@ Return the full file in a markdown code fence:
 ```
 
 Rules:
-- Only modify text within EVOLVE-BLOCK-START/END.
-- Improve clarity, coherence, and actionable phrasing.
-- Keep the rest of the file unchanged."""
+- Edit keys/values inside the dict as needed; keep Python valid.
+- Improve clarity, coherence, and actionability with concrete metrics and checks.
+- Keep each value aligned to its section; avoid cross-section content.
+- Do not modify code outside the EVOLVE block."""
 
 
-# Variant 3: Structural rephrase
+# Variant 3: Structural rephrase (sectioned)
 FULL_SYS_FORMAT_STRUCTURAL = """
-Rephrase and restructure the EVOLVE-BLOCK text for readability (headings, bullets, short sentences).
+Restructure the EVOLVE-BLOCK dict for readability and SOTA clarity (bullets, concise sentences,
+consistent style). Elevate specificity and practical guidance that could reach top results.
 Return the full file in a markdown code fence:
 
 ```{language}
@@ -62,14 +74,16 @@ Return the full file in a markdown code fence:
 ```
 
 Rules:
-- Edit only inside EVOLVE-BLOCK-START/END.
-- Prefer concise bullet points or numbered steps for clarity.
-- Keep semantics intact; do not alter code outside the block."""
+- Edit inside EVOLVE-BLOCK-START/END; keep Python valid.
+- Adjust keys/values if it improves structure and rigor; prioritize concise bullets and metrics.
+- Keep each section on-topic; no cross-topic mixing.
+- Do not alter code outside the block."""
 
 
-# Variant 4: Concise rewrite
+# Variant 4: Concise rewrite (sectioned)
 FULL_SYS_FORMAT_PARAMETRIC = """
-Condense and clarify the EVOLVE-BLOCK text with minimal wording while preserving meaning.
+Condense the EVOLVE-BLOCK dict while keeping SOTA-level specificity. Keep meaning but tighten
+to short, direct bullets with concrete metrics and safeguards that can drive top performance.
 Return the full file in a markdown code fence:
 
 ```{language}
@@ -77,8 +91,9 @@ Return the full file in a markdown code fence:
 ```
 
 Rules:
-- Only edit text inside EVOLVE-BLOCK-START/END.
-- Keep sentences short and direct; remove redundancy.
+- Edit keys/values inside the dict; keep code valid and markers intact.
+- Use short, direct bullets; retain concrete details and metrics.
+- Keep each value relevant to its section only.
 - Do not modify code outside the block."""
 
 # List of all variants for sampling
@@ -101,7 +116,7 @@ FULL_SYS_FORMAT_NAMES = [
 
 FULL_ITER_MSG = """# Current file
 
-Here is the current file to improve (edit text only inside EVOLVE-BLOCK):
+Here is the current file to improve (edit the dict inside EVOLVE-BLOCK):
 
 ```{language}
 {code_content}
@@ -113,6 +128,8 @@ Here are the current metrics/feedback:
 
 # Task
 
-Rewrite the EVOLVE-BLOCK text for clarity, structure, and actionability.
-Return the full file in a markdown code fence. Do not change code outside the EVOLVE block.
-"""
+Rewrite the dict inside EVOLVE-BLOCK so the resulting methodology could plausibly achieve
+state-of-the-art results: concrete models, data scale/quality, metrics, validation, risks,
+and safeguards. You may refine or add sections, but keep valid Python and the markers
+untouched. Keep each section on-topic for its key; avoid mixing topics across sections.
+Return the full file in a markdown code fence. Do not change code outside the EVOLVE block."""
