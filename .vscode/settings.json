@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "/Users/mikhail/miniconda3/envs/EvoOwl/bin/python",
+  "python.condaPath": "/Users/mikhail/miniconda3/bin/conda",
+  "python.terminal.activateEnvironment": true,
+  "python.formatting.provider": "black",
+  "python.analysis.typeCheckingMode": "basic"
+}

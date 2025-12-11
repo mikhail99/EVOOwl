@@ -127,6 +127,20 @@ Desktop.ini
 logs
 *.log
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+.coverage
+coverage.xml
+
 # Build artifacts
 build/
 dist/
