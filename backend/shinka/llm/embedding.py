@@ -1,7 +1,6 @@
 import os
 import re
 import openai
-import google.generativeai as genai
 import pandas as pd
 from typing import Union, List, Optional, Tuple
 import numpy as np
@@ -41,22 +40,6 @@ GEMINI_EMBEDDING_COSTS = {
 def get_client_model(model_name: str) -> tuple[Union[openai.OpenAI, str], str]:
     if model_name in OPENAI_EMBEDDING_MODELS:
         client = openai.OpenAI()
-        model_to_use = model_name
-    elif model_name in AZURE_EMBEDDING_MODELS:
-        # get rid of the azure- prefix
-        model_to_use = model_name.split("azure-")[-1]
-        client = openai.AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            api_version=os.getenv("AZURE_API_VERSION"),
-            azure_endpoint=os.getenv("AZURE_API_ENDPOINT"),
-        )
-    elif model_name in GEMINI_EMBEDDING_MODELS:
-        # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set for Gemini models")
-        genai.configure(api_key=api_key)
-        client = "gemini"  # Use string identifier for Gemini
         model_to_use = model_name
     elif model_name.startswith("ollama:") or model_name.startswith("ollama-"):
         # Pattern allows `ollama:nomic-embed-text` or `ollama-nomic-embed-text`
@@ -105,34 +88,6 @@ class EmbeddingClient:
             single_code = True
         else:
             single_code = False
-        # Handle Gemini models
-        if self.model_name in GEMINI_EMBEDDING_MODELS:
-            try:
-                embeddings = []
-                total_tokens = 0
-                
-                for text in code:
-                    result = genai.embed_content(
-                        model=f"models/{self.model}",
-                        content=text,
-                        task_type="retrieval_document"
-                    )
-                    embeddings.append(result['embedding'])
-                    total_tokens += len(text.split())
-                
-                cost = total_tokens * GEMINI_EMBEDDING_COSTS.get(self.model, 0.0)
-                
-                if single_code:
-                    return embeddings[0] if embeddings else [], cost
-                else:
-                    return embeddings, cost
-            except Exception as e:
-                logger.error(f"Error getting Gemini embedding: {e}")
-                if single_code:
-                    return [], 0.0
-                else:
-                    return [[]], 0.0
-        # Handle OpenAI and Azure models (same interface)
         try:
             response = self.client.embeddings.create(
                 model=self.model, input=code, encoding_format="float"

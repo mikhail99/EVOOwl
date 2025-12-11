@@ -20,21 +20,23 @@ RULES:
 def main():
     # 1. Configure where the evaluation happens
     job_config = LocalJobConfig(
-        eval_program_path="evaluate.py",
+        # Paths are relative to repo root when running `python backend/run.py`
+        eval_program_path="backend/evaluate.py",
         conda_env="EvoOwl",
     )
 
-    # 2. Configure the database
-    db_config = DatabaseConfig(check_novelty=True)
+    # 2. Configure the database (uses default SQLite file under results dir)
+    db_config = DatabaseConfig()
 
     # 3. Configure the evolution
     evo_config = EvolutionConfig(
-        init_program_path="initial.py",
+        init_program_path="backend/initial.py",
         num_generations=10,
-        population_size=5,
+        patch_types=["full"],
+        patch_type_probs=[1.0],
         language="python",
         task_sys_msg=MUTATION_SYSTEM_PROMPT,
-        llm_models=["ollama:llama3"],
+        llm_models=["ollama:qwen3:0.6b"],
         embedding_model="ollama:nomic-embed-text",
     )
 
