@@ -2,8 +2,13 @@ import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 
 type DNAHelixSize = "sm" | "md" | "lg";
+type DNAHelixProps = {
+  className?: string;
+  size?: DNAHelixSize;
+  active?: boolean;
+};
 
-export default function DNAHelix({ className = "", size = "md" as DNAHelixSize }) {
+export default function DNAHelix({ className = "", size = "md" as DNAHelixSize, active = true }: DNAHelixProps) {
   const sizes: Record<DNAHelixSize, { width: number; height: number; beads: number }> = {
     sm: { width: 80, height: 70, beads: 5 },
     md: { width: 120, height: 100, beads: 6 },
@@ -48,6 +53,20 @@ export default function DNAHelix({ className = "", size = "md" as DNAHelixSize }
       left: [...parentA.left.slice(0, halfPoint), ...parentB.left.slice(halfPoint)],
       right: [...parentA.right.slice(0, halfPoint), ...parentB.right.slice(halfPoint)],
     };
+  };
+
+  // Mutate a DNA sequence by randomly changing a small number of segments to other palette colors
+  const mutate = (dna: { left: string[]; right: string[] }, strength: number) => {
+    const mutatedLeft = [...dna.left];
+    const mutatedRight = [...dna.right];
+    const changes = Math.max(1, Math.floor((beads * strength) / 100));
+    for (let i = 0; i < changes; i++) {
+      const idx = Math.floor(Math.random() * beads);
+      mutatedLeft[idx] = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+      const idxR = Math.floor(Math.random() * beads);
+      mutatedRight[idxR] = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+    }
+    return { left: mutatedLeft, right: mutatedRight };
   };
 
   // Initial parent DNA sequences with specific color patterns
@@ -112,8 +131,9 @@ export default function DNAHelix({ className = "", size = "md" as DNAHelixSize }
     logBallColors();
   }, []);
 
-  // Generate new offspring and evolve parents
+  // Generate new offspring and evolve parents only when active
   React.useEffect(() => {
+    if (!active) return;
     const interval = setInterval(() => {
       setGeneration(prev => prev + 1);
       logBallColors();
@@ -124,15 +144,26 @@ export default function DNAHelix({ className = "", size = "md" as DNAHelixSize }
         parentB: currentOffspring.child2,
       });
 
-      // Generate new offspring via crossover of current parents
+      // Generate new offspring via crossover + light mutation for variety
       setCurrentOffspring({
-        child1: crossover(currentParents.parentA, currentParents.parentB),
-        child2: crossover(currentParents.parentB, currentParents.parentA),
+        child1: mutate(crossover(currentParents.parentA, currentParents.parentB), 20),
+        child2: mutate(crossover(currentParents.parentB, currentParents.parentA), 20),
       });
     }, cycle * 1000);
 
     return () => clearInterval(interval);
-  }, [currentParents]);
+  }, [active, currentParents, currentOffspring]);
+
+  // Reset to initial state when deactivated
+  React.useEffect(() => {
+    if (active) return;
+    setGeneration(0);
+    setCurrentParents({ parentA: initialParentA, parentB: initialParentB });
+    setCurrentOffspring({
+      child1: crossover(initialParentA, initialParentB),
+      child2: crossover(initialParentB, initialParentA),
+    });
+  }, [active, initialParentA, initialParentB]);
 
   // Single DNA strand component
   const Strand = ({
