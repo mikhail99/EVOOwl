@@ -6,7 +6,6 @@ import { Trophy, Crown, Sparkles, Copy, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import FitnessRing from './FitnessRing';
 import { useState } from 'react';
-import { Markdown } from '@/components/ui/Markdown';
 
 export default function ChampionDisplay({ solution, generationFound }) {
     const [copied, setCopied] = useState(false);
@@ -99,8 +98,10 @@ export default function ChampionDisplay({ solution, generationFound }) {
                     </div>
 
                     <div className="relative">
-                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 mb-4 prose prose-invert prose-sm max-w-none">
-                            <Markdown content={solution.text || ''} />
+                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 mb-4">
+                            <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+                                {solution.text}
+                            </p>
                         </div>
                         <Button
                             size="sm"

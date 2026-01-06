@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Dna, Sparkles, GitMerge } from 'lucide-react';
 import FitnessRing from './FitnessRing';
-import { Markdown } from '@/components/ui/Markdown';
 
 export default function SolutionCard({
     solution,
@@ -98,9 +97,9 @@ export default function SolutionCard({
                                 )}
                             </div>
 
-                            <div className={`${expanded ? '' : 'line-clamp-3'} text-sm text-slate-300 prose prose-invert prose-sm max-w-none`}>
-                                <Markdown content={solution.text || ''} />
-                            </div>
+                            <p className={`text-sm text-slate-300 ${expanded ? '' : 'line-clamp-3'}`}>
+                                {solution.text}
+                            </p>
 
                             {solution.text?.length > 150 && (
                                 <button
