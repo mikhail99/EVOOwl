@@ -13,6 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Bookmark, Loader2 } from 'lucide-react';
 
+type SaveSnapshotDialogProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSave: (name: string) => void;
+    defaultName?: string;
+    generation?: number;
+    isSaving?: boolean;
+};
+
 export default function SaveSnapshotDialog({
     open,
     onOpenChange,
@@ -20,7 +29,7 @@ export default function SaveSnapshotDialog({
     defaultName = '',
     generation = 0,
     isSaving = false
-}) {
+}: SaveSnapshotDialogProps) {
     const [name, setName] = useState(defaultName);
 
     const handleSave = () => {

@@ -1,12 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { GenerationStats } from '@/api/types';
+
+type GenerationTimelineProps = {
+    generations: GenerationStats[];
+    currentGeneration: number;
+    onSelectGeneration?: (index: number) => void;
+};
 
 export default function GenerationTimeline({
     generations,
     currentGeneration,
     onSelectGeneration
-}) {
+}: GenerationTimelineProps) {
     const maxFitness = Math.max(...generations.map(g => g.bestFitness || 0), 1);
 
     return (

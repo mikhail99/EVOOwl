@@ -4,6 +4,16 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Dna, Sparkles, GitMerge } from 'lucide-react';
 import FitnessRing from './FitnessRing';
+import type { EvolutionType, Solution } from '@/api/types';
+
+type SolutionCardProps = {
+    solution: Solution;
+    rank: number;
+    isSelected: boolean;
+    onSelect?: (solution: Solution) => void;
+    isEvolving?: boolean;
+    evolutionType?: EvolutionType;
+};
 
 export default function SolutionCard({
     solution,
@@ -12,8 +22,9 @@ export default function SolutionCard({
     onSelect,
     isEvolving,
     evolutionType
-}) {
+}: SolutionCardProps) {
     const [expanded, setExpanded] = useState(false);
+    const fitness = solution.fitness ?? 0;
 
     const getRankBadge = () => {
         if (rank === 1) return { bg: 'bg-gradient-to-r from-amber-500 to-yellow-400', text: '🥇 Champion' };
@@ -65,9 +76,9 @@ export default function SolutionCard({
                 onClick={() => onSelect?.(solution)}
             >
                 {/* Top gradient bar */}
-                <div className={`h-1 w-full bg-gradient-to-r ${solution.fitness >= 80 ? 'from-emerald-500 via-teal-400 to-emerald-500' :
-                        solution.fitness >= 60 ? 'from-violet-500 via-purple-400 to-violet-500' :
-                            solution.fitness >= 40 ? 'from-amber-500 via-yellow-400 to-amber-500' :
+                <div className={`h-1 w-full bg-gradient-to-r ${fitness >= 80 ? 'from-emerald-500 via-teal-400 to-emerald-500' :
+                        fitness >= 60 ? 'from-violet-500 via-purple-400 to-violet-500' :
+                            fitness >= 40 ? 'from-amber-500 via-yellow-400 to-amber-500' :
                                 'from-red-500 via-rose-400 to-red-500'
                     }`} />
 

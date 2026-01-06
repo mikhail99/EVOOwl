@@ -29,13 +29,24 @@ import {
     AlertCircle,
     CheckCircle
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import type { Snapshot } from '@/api/types';
 
-const snapshotIcons = {
+const snapshotIcons: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
     manual: { icon: Bookmark, color: 'text-blue-400', bg: 'bg-blue-500/20' },
     new_champion: { icon: Trophy, color: 'text-amber-400', bg: 'bg-amber-500/20' },
     generation_complete: { icon: Circle, color: 'text-violet-400', bg: 'bg-violet-500/20' },
     evolution_complete: { icon: Flag, color: 'text-emerald-400', bg: 'bg-emerald-500/20' }
+};
+
+type HistoryPanelProps = {
+    snapshots?: Snapshot[];
+    currentSnapshotId: string | null;
+    isViewingHistory: boolean;
+    onRestore: (snapshot: Snapshot) => void;
+    onDelete: (snapshotId: string) => void;
+    onExport: (snapshot: Snapshot) => void;
 };
 
 export default function HistoryPanel({
@@ -45,17 +56,17 @@ export default function HistoryPanel({
     onRestore,
     onDelete,
     onExport
-}) {
+}: HistoryPanelProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState<Snapshot | null>(null);
 
     const filteredSnapshots = snapshots.filter(snapshot =>
         snapshot.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         snapshot.problem?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const sortedSnapshots = [...filteredSnapshots].sort((a, b) =>
-        new Date(b.created_date) - new Date(a.created_date)
+    const sortedSnapshots = [...filteredSnapshots].sort(
+        (a, b) => new Date(b.created_date ?? 0).getTime() - new Date(a.created_date ?? 0).getTime()
     );
 
     return (
@@ -144,7 +155,9 @@ export default function HistoryPanel({
                                                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
                                                             <span className="flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" />
-                                                                {format(new Date(snapshot.created_date), 'MMM d, HH:mm')}
+                                                                {snapshot.created_date
+                                                                    ? format(new Date(snapshot.created_date), 'MMM d, HH:mm')
+                                                                    : 'Unknown'}
                                                             </span>
                                                             <span>•</span>
                                                             <span className="font-mono">Gen {snapshot.generation}</span>

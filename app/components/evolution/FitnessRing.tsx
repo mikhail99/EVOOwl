@@ -1,7 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export default function FitnessRing({ score, maxScore = 100, size = 80, strokeWidth = 6 }) {
+type FitnessRingProps = {
+    score: number;
+    maxScore?: number;
+    size?: number;
+    strokeWidth?: number;
+};
+
+export default function FitnessRing({ score, maxScore = 100, size = 80, strokeWidth = 6 }: FitnessRingProps) {
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const progress = (score / maxScore) * circumference;

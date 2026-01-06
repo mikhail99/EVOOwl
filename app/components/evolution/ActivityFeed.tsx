@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dna, GitMerge, Sparkles, Zap, Trophy, AlertCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Activity } from '@/api/types';
 
-const activityIcons = {
+const activityIcons: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
     mutation: { icon: Dna, color: 'text-violet-400', bg: 'bg-violet-500/20' },
     crossover: { icon: GitMerge, color: 'text-teal-400', bg: 'bg-teal-500/20' },
     evaluation: { icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/20' },
@@ -12,7 +14,11 @@ const activityIcons = {
     error: { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/20' },
 };
 
-export default function ActivityFeed({ activities = [] }) {
+type ActivityFeedProps = {
+    activities?: Activity[];
+};
+
+export default function ActivityFeed({ activities = [] }: ActivityFeedProps) {
     return (
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between mb-3">

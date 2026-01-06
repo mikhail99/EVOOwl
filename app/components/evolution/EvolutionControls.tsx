@@ -13,6 +13,22 @@ import {
     History
 } from 'lucide-react';
 
+type EvolutionControlsProps = {
+    isRunning: boolean;
+    isPaused: boolean;
+    currentGeneration: number;
+    totalGenerations: number;
+    bestFitness: number | null | undefined;
+    isViewingHistory: boolean;
+    onStart: () => void;
+    onPause: () => void;
+    onResume: () => void;
+    onReset: () => void;
+    onNextGeneration?: () => void;
+    onSaveSnapshot: () => void;
+    onToggleHistory: () => void;
+};
+
 export default function EvolutionControls({
     isRunning,
     isPaused,
@@ -27,7 +43,7 @@ export default function EvolutionControls({
     onNextGeneration,
     onSaveSnapshot,
     onToggleHistory
-}) {
+}: EvolutionControlsProps) {
     const progress = totalGenerations > 0
         ? ((currentGeneration + 1) / totalGenerations) * 100
         : 0;
@@ -123,10 +139,10 @@ export default function EvolutionControls({
                             )}
 
                             <Button
-                                onClick={onNextGeneration}
+                                onClick={onNextGeneration ?? (() => {})}
                                 variant="outline"
                                 className="border-slate-600 text-slate-300 hover:bg-slate-800"
-                                disabled={!isPaused}
+                                disabled={!isPaused || !onNextGeneration}
                             >
                                 <SkipForward className="w-4 h-4 mr-2" />
                                 Next Gen

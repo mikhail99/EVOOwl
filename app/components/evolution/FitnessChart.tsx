@@ -11,13 +11,14 @@ import {
     Line,
     ComposedChart
 } from 'recharts';
+import type { GenerationStats } from '@/api/types';
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string | number }) => {
     if (active && payload && payload.length) {
         return (
             <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-xl p-3 shadow-xl">
                 <p className="text-xs text-slate-400 mb-2">Generation {label}</p>
-                {payload.map((entry, index) => (
+                {payload.map((entry: any, index: number) => (
                     <div key={index} className="flex items-center gap-2">
                         <div
                             className="w-2 h-2 rounded-full"
@@ -35,7 +36,11 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-export default function FitnessChart({ data = [] }) {
+type FitnessChartProps = {
+    data?: GenerationStats[];
+};
+
+export default function FitnessChart({ data = [] }: FitnessChartProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}

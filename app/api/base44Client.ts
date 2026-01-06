@@ -64,7 +64,7 @@ const createEntityOperations = <T extends { id: string }>(
       ...data,
       id: Math.random().toString(36).substring(2, 15),
       created_date: new Date().toISOString()
-    } as T
+    } as unknown as T
 
     storage.push(newItem)
     return newItem

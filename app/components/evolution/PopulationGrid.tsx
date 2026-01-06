@@ -2,6 +2,15 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SolutionCard from './SolutionCard';
 import { Users, TrendingUp } from 'lucide-react';
+import type { EvolutionTypesById, Solution } from '@/api/types';
+
+type PopulationGridProps = {
+    solutions: Solution[];
+    selectedSolution: Solution | null;
+    onSelectSolution: (solution: Solution) => void;
+    evolvingIds?: string[];
+    evolutionTypes?: EvolutionTypesById;
+};
 
 export default function PopulationGrid({
     solutions,
@@ -9,7 +18,7 @@ export default function PopulationGrid({
     onSelectSolution,
     evolvingIds = [],
     evolutionTypes = {}
-}) {
+}: PopulationGridProps) {
     const sortedSolutions = [...solutions].sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
 
     const avgFitness = solutions.length > 0

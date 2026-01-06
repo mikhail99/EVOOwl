@@ -7,21 +7,29 @@ import {
     Circle,
     CheckCircle2
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import type { Snapshot } from '@/api/types';
 
-const snapshotIcons = {
+const snapshotIcons: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
     manual: { icon: Bookmark, color: 'text-blue-400', bg: 'bg-blue-500' },
     new_champion: { icon: Trophy, color: 'text-amber-400', bg: 'bg-amber-500' },
     generation_complete: { icon: Circle, color: 'text-violet-400', bg: 'bg-violet-500' },
     evolution_complete: { icon: Flag, color: 'text-emerald-400', bg: 'bg-emerald-500' }
 };
 
+type HistoryTimelineProps = {
+    snapshots?: Snapshot[];
+    currentSnapshotId: string | null;
+    onSelectSnapshot: (snapshot: Snapshot) => void;
+};
+
 export default function HistoryTimeline({
     snapshots = [],
     currentSnapshotId,
     onSelectSnapshot
-}) {
+}: HistoryTimelineProps) {
     if (snapshots.length === 0) {
         return (
             <div className="text-center py-8">

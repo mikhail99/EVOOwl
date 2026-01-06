@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { backendApi } from '@/api/backendClient';
-import { Solution, Criterion, Snapshot } from '@/api/types';
+import type { Activity, ActivityType, Config, Criterion, EvolutionTypesById, GenerationStats, Snapshot, SnapshotType, Solution } from '@/api/types';
 import { Dna, Settings, BarChart3, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,12 +22,12 @@ import SaveSnapshotDialog from '@/components/evolution/SaveSnapshotDialog';
 export default function Evolution() {
     const [activeTab, setActiveTab] = useState('setup');
     const [problem, setProblem] = useState('');
-    const [criteria, setCriteria] = useState([
+    const [criteria, setCriteria] = useState<Criterion[]>([
         { name: 'Feasibility', weight: 2 },
         { name: 'Innovation', weight: 1 },
         { name: 'Clarity', weight: 1 }
     ]);
-    const [config, setConfig] = useState({
+    const [config, setConfig] = useState<Config>({
         populationSize: 6,
         generations: 10,
         mutationRate: 0.3,
@@ -37,18 +37,18 @@ export default function Evolution() {
     const [isRunning, setIsRunning] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [currentGeneration, setCurrentGeneration] = useState(-1);
-    const [population, setPopulation] = useState([]);
-    const [generations, setGenerations] = useState([]);
-    const [activities, setActivities] = useState([]);
-    const [selectedSolution, setSelectedSolution] = useState(null);
-    const [champion, setChampion] = useState(null);
-    const [championGeneration, setChampionGeneration] = useState(null);
-    const [evolvingIds, setEvolvingIds] = useState([]);
-    const [evolutionTypes, setEvolutionTypes] = useState({});
-    const [sessionId, setSessionId] = useState(null);
+    const [population, setPopulation] = useState<Solution[]>([]);
+    const [generations, setGenerations] = useState<GenerationStats[]>([]);
+    const [activities, setActivities] = useState<Activity[]>([]);
+    const [selectedSolution, setSelectedSolution] = useState<Solution | null>(null);
+    const [champion, setChampion] = useState<Solution | null>(null);
+    const [championGeneration, setChampionGeneration] = useState<number | null>(null);
+    const [evolvingIds, setEvolvingIds] = useState<string[]>([]);
+    const [evolutionTypes, setEvolutionTypes] = useState<EvolutionTypesById>({});
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
     const [isViewingHistory, setIsViewingHistory] = useState(false);
-    const [currentSnapshotId, setCurrentSnapshotId] = useState(null);
+    const [currentSnapshotId, setCurrentSnapshotId] = useState<string | null>(null);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
 
@@ -64,8 +64,8 @@ export default function Evolution() {
 
     const isValid = problem.trim().length > 10 && criteria.some(c => c.name.trim());
 
-    const addActivity = useCallback((type, message, details, score) => {
-        const activity = {
+    const addActivity = useCallback((type: ActivityType, message: string, details?: string, score?: number) => {
+        const activity: Activity = {
             id: Date.now() + Math.random(),
             type,
             message,
@@ -77,7 +77,7 @@ export default function Evolution() {
     }, []);
 
     // Save snapshot function
-    const saveSnapshot = useCallback(async (snapshotType, customName = null) => {
+    const saveSnapshot = useCallback(async (snapshotType: SnapshotType, customName: string | null = null) => {
         if (!sessionId) return;
 
         try {
@@ -111,7 +111,7 @@ export default function Evolution() {
     }, [sessionId, currentGeneration, problem, criteria, config, population, generations, champion, championGeneration, refetchSnapshots]);
 
     // Restore from snapshot
-    const restoreSnapshot = useCallback(async (snapshot) => {
+    const restoreSnapshot = useCallback(async (snapshot: Snapshot) => {
         try {
             // Stop any running evolution
             if (isRunning) {
@@ -142,7 +142,7 @@ export default function Evolution() {
     }, [isRunning, addActivity]);
 
     // Delete snapshot
-    const deleteSnapshot = useCallback(async (snapshotId) => {
+    const deleteSnapshot = useCallback(async (snapshotId: string) => {
         try {
             await backendApi.snapshots.delete(snapshotId);
             await refetchSnapshots();
@@ -160,7 +160,7 @@ export default function Evolution() {
     }, [currentSnapshotId, refetchSnapshots]);
 
     // Export snapshot
-    const exportSnapshot = useCallback((snapshot) => {
+    const exportSnapshot = useCallback((snapshot: Snapshot) => {
         try {
             const dataStr = JSON.stringify(snapshot, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -181,7 +181,7 @@ export default function Evolution() {
     }, []);
 
     // Handle manual snapshot save
-    const handleSaveManualSnapshot = useCallback(async (name) => {
+    const handleSaveManualSnapshot = useCallback(async (name: string) => {
         setIsSavingSnapshot(true);
         await saveSnapshot('manual', name);
         setIsSavingSnapshot(false);
@@ -218,10 +218,10 @@ export default function Evolution() {
         };
     };
 
-    const evaluatePopulation = useCallback(async (solutions) => {
+    const evaluatePopulation = useCallback(async (solutions: Solution[]) => {
         addActivity('evaluation', 'Evaluating population...', `Scoring ${solutions.length} solutions`);
 
-        const evaluated = [];
+        const evaluated: Solution[] = [];
         for (let i = 0; i < solutions.length; i++) {
             if (evolutionRef.current.shouldStop) break;
 
@@ -229,14 +229,14 @@ export default function Evolution() {
             const result = await evaluateSolution(solutions[i]);
             evaluated.push(result);
 
-            addActivity('evaluation', `Evaluated solution`, `Score: ${result.fitness?.toFixed(1)}`, result.fitness);
+            addActivity('evaluation', `Evaluated solution`, `Score: ${result.fitness?.toFixed(1)}`, result.fitness ?? undefined);
 
             // Update champion if this is the best
-            if (!champion || result.fitness > champion.fitness) {
+            if (!champion || (result.fitness ?? 0) > (champion.fitness ?? 0)) {
                 setChampion(result);
                 const gen = currentGeneration >= 0 ? currentGeneration : 0;
                 setChampionGeneration(gen);
-                addActivity('newBest', 'New champion found!', `Fitness: ${result.fitness?.toFixed(1)}`, result.fitness);
+                addActivity('newBest', 'New champion found!', `Fitness: ${result.fitness?.toFixed(1)}`, result.fitness ?? undefined);
 
                 // Auto-save snapshot when new champion is found
                 if (sessionId && gen > 0) {
@@ -249,13 +249,13 @@ export default function Evolution() {
         return evaluated;
     }, [addActivity, champion, currentGeneration, sessionId, saveSnapshot]);
 
-    const selectParents = useCallback((evaluatedPopulation) => {
+    const selectParents = useCallback((evaluatedPopulation: Solution[]) => {
         // Tournament selection
         const tournamentSize = 3;
-        const selected = [];
+        const selected: Solution[] = [];
 
         for (let i = 0; i < 2; i++) {
-            const tournament = [];
+            const tournament: Solution[] = [];
             for (let j = 0; j < tournamentSize; j++) {
                 const idx = Math.floor(Math.random() * evaluatedPopulation.length);
                 tournament.push(evaluatedPopulation[idx]);
@@ -316,9 +316,9 @@ export default function Evolution() {
         };
     }, [addActivity, problem, currentGeneration]);
 
-    const createNextGeneration = useCallback(async (evaluatedPopulation) => {
-        const newPopulation = [];
-        const newEvolutionTypes = {};
+    const createNextGeneration = useCallback(async (evaluatedPopulation: Solution[]) => {
+        const newPopulation: Solution[] = [];
+        const newEvolutionTypes: EvolutionTypesById = {};
 
         // Elitism: keep the best solution
         const sorted = [...evaluatedPopulation].sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
@@ -427,7 +427,7 @@ export default function Evolution() {
             const genChampion = currentPop.reduce((best, curr) =>
                 (curr.fitness || 0) > (best.fitness || 0) ? curr : best
             );
-            if (!champion || genChampion.fitness > champion.fitness) {
+            if (!champion || (genChampion.fitness ?? 0) > (champion.fitness ?? 0)) {
                 setChampion(genChampion);
                 setChampionGeneration(gen);
             }

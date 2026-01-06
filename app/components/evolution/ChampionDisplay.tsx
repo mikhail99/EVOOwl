@@ -6,11 +6,18 @@ import { Trophy, Crown, Sparkles, Copy, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import FitnessRing from './FitnessRing';
 import { useState } from 'react';
+import type { Solution } from '@/api/types';
 
-export default function ChampionDisplay({ solution, generationFound }) {
+type ChampionDisplayProps = {
+    solution: Solution | null;
+    generationFound: number | null;
+};
+
+export default function ChampionDisplay({ solution, generationFound }: ChampionDisplayProps) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
+        if (!solution) return;
         navigator.clipboard.writeText(solution.text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);

@@ -15,6 +15,18 @@ import {
     Lightbulb,
     Settings2
 } from 'lucide-react';
+import type { Config, Criterion } from '@/api/types';
+
+type ProblemSetupProps = {
+    problem: string;
+    setProblem: (value: string) => void;
+    criteria: Criterion[];
+    setCriteria: (value: Criterion[]) => void;
+    config: Config;
+    setConfig: (value: Config) => void;
+    onStartEvolution: () => void;
+    isValid: boolean;
+};
 
 export default function ProblemSetup({
     problem,
@@ -25,18 +37,18 @@ export default function ProblemSetup({
     setConfig,
     onStartEvolution,
     isValid
-}) {
+}: ProblemSetupProps) {
     const addCriterion = () => {
         setCriteria([...criteria, { name: '', weight: 1 }]);
     };
 
-    const removeCriterion = (index) => {
+    const removeCriterion = (index: number) => {
         setCriteria(criteria.filter((_, i) => i !== index));
     };
 
-    const updateCriterion = (index, field, value) => {
+    const updateCriterion = (index: number, field: keyof Criterion, value: string | number) => {
         const updated = [...criteria];
-        updated[index] = { ...updated[index], [field]: value };
+        updated[index] = { ...updated[index], [field]: value } as Criterion;
         setCriteria(updated);
     };
 
